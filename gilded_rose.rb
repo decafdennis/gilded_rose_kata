@@ -1,47 +1,32 @@
+require 'value'
+
 def update_quality(items)
   items.each do |item|
-    if item.name != 'Aged Brie' && item.name != 'Backstage passes to a TAFKAL80ETC concert'
-      if item.quality > 0
-        if item.name != 'Sulfuras, Hand of Ragnaros'
-          item.quality -= 1
-        end
-      end
-    else
-      if item.quality < 50
-        item.quality += 1
-        if item.name == 'Backstage passes to a TAFKAL80ETC concert'
-          if item.sell_in < 11
-            if item.quality < 50
-              item.quality += 1
-            end
-          end
-          if item.sell_in < 6
-            if item.quality < 50
-              item.quality += 1
-            end
-          end
-        end
-      end
-    end
-    if item.name != 'Sulfuras, Hand of Ragnaros'
-      item.sell_in -= 1
-    end
-    if item.sell_in < 0
-      if item.name != "Aged Brie"
-        if item.name != 'Backstage passes to a TAFKAL80ETC concert'
-          if item.quality > 0
-            if item.name != 'Sulfuras, Hand of Ragnaros'
-              item.quality -= 1
-            end
-          end
-        else
-          item.quality = item.quality - item.quality
-        end
+    sell_in = SellInValue.of(item).decreases
+    quality = QualityValue.of(item).degrades.is_never_negative.is_never_more_than(50)
+
+    quality.degrades_twice_as_fast if sell_in.has_passed?
+
+    case item.name
+    when /Aged Brie/
+      quality.improves_with_age
+
+    when /Sulfuras/
+      sell_in.never_changes
+      quality.never_changes
+
+    when /Backstage passes/
+      if sell_in.has_passed?
+        quality.drops_to_zero
       else
-        if item.quality < 50
-          item.quality += 1
-        end
+        quality.improves_by 3 - (item.sell_in / 5).floor
       end
+
+    when /Conjured/
+      quality.degrades_twice_as_fast
+
+    else
+      # Intentionally left blank.
     end
   end
 end
